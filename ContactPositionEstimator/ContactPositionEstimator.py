@@ -444,7 +444,7 @@ class ContactPositionEstimatorLogic(ScriptedLoadableModuleLogic):
         #mlogic.SetDefaultMarkupsDisplayNodeColor(0.39, 0.78, 0.78)  # AZZURRO
         #mlogic.SetDefaultMarkupsDisplayNodeSelectedColor(0.39, 1.0, 0.39)  # VERDONE
 
-        fidNode = slicer.util.getNode(mlogic.AddNewFiducialNode("recon"))
+        fidNode = slicer.util.getNode(mlogic.AddNewFiducialNode("SEEGA"))
 
         # Save the volume as has been modified
         self.tmpVolumeFile = parentPath + "/Tmp/tmp.nii.gz"

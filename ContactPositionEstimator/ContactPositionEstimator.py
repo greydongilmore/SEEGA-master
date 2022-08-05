@@ -588,6 +588,7 @@ class Electrode():
         self.tailCheckBox = qt.QCheckBox(self.row)
         self.tailCheckBox.setMaximumWidth(hsize[2])
         self.tailCheckBox.setMaximumHeight(20)
+        self.tailCheckBox.setChecked(True)
         self.tailCheckBox.setStyleSheet("qproperty-alignment: AlignCenter;")
         self.hlayout.addWidget(self.tailCheckBox)
 
@@ -595,6 +596,7 @@ class Electrode():
         self.headCheckBox = qt.QCheckBox(self.row)
         self.headCheckBox.setMaximumWidth(hsize[3])
         self.headCheckBox.setMaximumHeight(20)
+        self.headCheckBox.setChecked(True)
         self.headCheckBox.setStyleSheet("qproperty-alignment: AlignCenter;")
         self.hlayout.addWidget(self.headCheckBox)
 

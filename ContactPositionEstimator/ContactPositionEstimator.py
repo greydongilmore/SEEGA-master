@@ -184,34 +184,33 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
 
         # here we fill electrode list using fiducials
         for i in range(self.fids.GetNumberOfFiducials()):
-            if self.fids.GetNthFiducialSelected(i) == True:
-                P2 = [0.0, 0.0, 0.0]
-                self.fids.GetNthFiducialPosition(i, P2)
-                # [WARNING] The fiducial name convention is hard coded, change please[/WARNING]#
-                # replace name with _1 or 1 with empty char
-                self.name = re.sub(r"_?1", "", self.fids.GetNthFiducialLabel(i))
-                # find the electrode in list with the same name
-                el = [x for x in self.electrodeList if str(x.name.text) == self.name]
-                if len(el) > 0:
-                    if (len(el[0].target) > 0):
-                        # (2.c.II)  more points than expected
-                        operationLog += "WAR: \"" + self.name + "\" has defined more than 2 times"
-                    P1 = el[0].entry
-                    el[0].target = P2
-                    distance_P2_P1 = (pow(P2[0], 2.0) + pow(P2[1], 2.0) + pow(P2[2], 2.0)) - \
-                                     (pow(P1[0], 2.0) + pow(P1[1], 2.0) + pow(P1[2], 2.0))
-                    if distance_P2_P1 > 0:
-                        el[0].entry = P2
-                        el[0].target = P1
-                else:
-                    # (2.b) for each point pair create an Electrode object containing:
-                    #       name, target and entry coordinates and the flag
-                    # Add the electrode Line to the collapsible button (update the GUI)
-                    self.electrodeList.append(Electrode(self.name, self.segmentationCB, \
-                                                        self.models, self.tableHsize))
-                    self.electrodeList[len(self.electrodeList) - 1].entry = P2
+            P2 = [0.0, 0.0, 0.0]
+            self.fids.GetNthFiducialPosition(i, P2)
+            # [WARNING] The fiducial name convention is hard coded, change please[/WARNING]#
+            # replace name with _1 or 1 with empty char
+            self.name = re.sub(r"_?1", "", self.fids.GetNthFiducialLabel(i))
+            # find the electrode in list with the same name
+            el = [x for x in self.electrodeList if str(x.name.text) == self.name]
+            if len(el) > 0:
+                if (len(el[0].target) > 0):
+                    # (2.c.II)  more points than expected
+                    operationLog += "WAR: \"" + self.name + "\" has defined more than 2 times"
+                P1 = el[0].entry
+                el[0].target = P2
+                distance_P2_P1 = (pow(P2[0], 2.0) + pow(P2[1], 2.0) + pow(P2[2], 2.0)) - \
+                                 (pow(P1[0], 2.0) + pow(P1[1], 2.0) + pow(P1[2], 2.0))
+                if distance_P2_P1 > 0:
+                    el[0].entry = P2
+                    el[0].target = P1
+            else:
+                # (2.b) for each point pair create an Electrode object containing:
+                #       name, target and entry coordinates and the flag
+                # Add the electrode Line to the collapsible button (update the GUI)
+                self.electrodeList.append(Electrode(self.name, self.segmentationCB, \
+                                                    self.models, self.tableHsize))
+                self.electrodeList[len(self.electrodeList) - 1].entry = P2
 
-                    # (2.c.i) Look for missing entry/target,
+                # (2.c.i) Look for missing entry/target,
         el = [x for x in self.electrodeList if (len(x.target) == 0)]
         for i in range(len(el)):
             operationLog += "ERR: \"" + el[i].name.text + "\" Missing entry or target"

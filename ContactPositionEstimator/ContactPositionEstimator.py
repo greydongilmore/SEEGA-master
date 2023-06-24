@@ -131,16 +131,27 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
         self.fiducialCBox.noneEnabled = True
         self.fiducialCBox.setMRMLScene(slicer.mrmlScene)
         self.fiducialCBox.setToolTip("Select a fiducial list")
-        #### Add fiducial to the Collapsible Button
-        self.segmentationFL.addRow("Fiducial List", self.fiducialCBox)
-        #### Connect the fiducial list to the
-        self.fiducialCBox.connect('currentNodeChanged(bool)', self.onfiducialCBox)
+        
 
         #### Configure Segmentation - Section
         ### Read from files the list of the modules
         with open(slicer.modules.ContactPositionEstimatorInstance.electrodeTypesPath) as data_file:
             # models is a dictionary with the name of electrode type is the key
-            self.models = json.load(data_file)
+            self.modelsAll = json.load(data_file)
+
+        self.elecGroupCBox=qt.QComboBox()
+        self.elecGroupCBox.blockSignals(1)
+        self.elecGroupCBox.addItems(["Select Group"]+list(self.modelsAll))
+        self.elecGroupCBox.setCurrentIndex(self.elecGroupCBox.findText('Select Group'))
+
+        self.elecGroupCBox.blockSignals(0)
+
+        #### Add fiducial to the Collapsible Button
+        self.segmentationFL.addRow("Electrode Group", self.elecGroupCBox)
+        self.segmentationFL.addRow("Fiducial List", self.fiducialCBox)
+        
+        #### Connect the fiducial list to the
+        self.fiducialCBox.connect('currentNodeChanged(bool)', self.onfiducialCBox)
 
         #### Create the caption table for the configuration
         self.tableCaption = ["Name", "Type/Model", "TP", "cEP"]
@@ -158,6 +169,8 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
         self.segmentationFL.addRow("", self.captionGB)
         self.electrodeList = []
 
+        slicer.modules.ContactPositionEstimatorWidget.reloadCollapsibleButton.collapsed=1
+        
     #######################################################################################
     # onfiducialCBox   #
     #  Create dynamically the electrode table, by reading the fiducial list selected, by
@@ -170,118 +183,123 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
     #        (ii) more points than expected
     # NB: unselected points will not be parsed
     #######################################################################################
-
+    
     def onfiducialCBox(self):
-        # (1) CLEAR the list
-        self.clearTable()  # Eliminate the electrode list
 
-        if self.fiducialCBox.currentNode() is None:
-            return
-        # (2.a) Read the fiducial list
-        operationLog = ""  # error/warning Log string
-        self.fids = self.fiducialCBox.currentNode()
-        self.electrodeList = []
+        if self.elecGroupCBox.currentText == "Select Group":
+            print("Select electrode group")
+        else:
+            self.models=self.modelsAll[self.elecGroupCBox.currentText]
+            # (1) CLEAR the list
+            self.clearTable()  # Eliminate the electrode list
 
-        # here we fill electrode list using fiducials
-        for i in range(self.fids.GetNumberOfFiducials()):
-            P2 = [0.0, 0.0, 0.0]
-            self.fids.GetNthFiducialPosition(i, P2)
-            # [WARNING] The fiducial name convention is hard coded, change please[/WARNING]#
-            # replace name with _1 or 1 with empty char
-            self.name = re.sub(r"_?1", "", self.fids.GetNthFiducialLabel(i))
-            # find the electrode in list with the same name
-            el = [x for x in self.electrodeList if str(x.name.text) == self.name]
-            if len(el) > 0:
-                if (len(el[0].target) > 0):
-                    # (2.c.II)  more points than expected
-                    operationLog += "WAR: \"" + self.name + "\" has defined more than 2 times"
-                P1 = el[0].entry
-                el[0].target = P2
-                distance_P2_P1 = (pow(P2[0], 2.0) + pow(P2[1], 2.0) + pow(P2[2], 2.0)) - \
-                                 (pow(P1[0], 2.0) + pow(P1[1], 2.0) + pow(P1[2], 2.0))
-                if distance_P2_P1 > 0:
-                    el[0].entry = P2
-                    el[0].target = P1
-            else:
-                # (2.b) for each point pair create an Electrode object containing:
-                #       name, target and entry coordinates and the flag
-                # Add the electrode Line to the collapsible button (update the GUI)
-                self.electrodeList.append(Electrode(self.name, self.segmentationCB, \
-                                                    self.models, self.tableHsize))
-                self.electrodeList[len(self.electrodeList) - 1].entry = P2
+            if self.fiducialCBox.currentNode() is None:
+                return
+            # (2.a) Read the fiducial list
+            operationLog = ""  # error/warning Log string
+            self.fids = self.fiducialCBox.currentNode()
+            self.electrodeList = []
 
-                # (2.c.i) Look for missing entry/target,
-        el = [x for x in self.electrodeList if (len(x.target) == 0)]
-        for i in range(len(el)):
-            operationLog += "ERR: \"" + el[i].name.text + "\" Missing entry or target"
-            el[i].delete()
-            self.electrodeList.remove(el[i])
+            # here we fill electrode list using fiducials
+            for i in range(self.fids.GetNumberOfFiducials()):
+                P2 = [0.0, 0.0, 0.0]
+                self.fids.GetNthFiducialPosition(i, P2)
+                # [WARNING] The fiducial name convention is hard coded, change please[/WARNING]#
+                # replace name with _1 or 1 with empty char
+                self.name = re.sub(r"_?1", "", self.fids.GetNthFiducialLabel(i))
+                # find the electrode in list with the same name
+                el = [x for x in self.electrodeList if str(x.name.text) == self.name]
+                if len(el) > 0:
+                    if (len(el[0].target) > 0):
+                        # (2.c.II)  more points than expected
+                        operationLog += "WAR: \"" + self.name + "\" has defined more than 2 times"
+                    P1 = el[0].entry
+                    el[0].target = P2
+                    distance_P2_P1 = (pow(P2[0], 2.0) + pow(P2[1], 2.0) + pow(P2[2], 2.0)) - \
+                                     (pow(P1[0], 2.0) + pow(P1[1], 2.0) + pow(P1[2], 2.0))
+                    if distance_P2_P1 > 0:
+                        el[0].entry = P2
+                        el[0].target = P1
+                else:
+                    # (2.b) for each point pair create an Electrode object containing:
+                    #       name, target and entry coordinates and the flag
+                    # Add the electrode Line to the collapsible button (update the GUI)
+                    self.electrodeList.append(Electrode(self.name, self.segmentationCB, \
+                                                        self.models, self.tableHsize))
+                    self.electrodeList[len(self.electrodeList) - 1].entry = P2
 
-        # here electrodeList should have all the electrode objects in the list
-        # we sort the electrode in list alphabetically
-        self.electrodeList = sorted(self.electrodeList,key=lambda x: x.name.text)
+                    # (2.c.i) Look for missing entry/target,
+            el = [x for x in self.electrodeList if (len(x.target) == 0)]
+            for i in range(len(el)):
+                operationLog += "ERR: \"" + el[i].name.text + "\" Missing entry or target"
+                el[i].delete()
+                self.electrodeList.remove(el[i])
 
-        # Link the electrode to the Form
-        for elec in self.electrodeList:
-            elec.computeLength()
-            elec.setElectrodeModel(self.models)
-            self.segmentationFL.addRow("", elec.row)
+            # here electrodeList should have all the electrode objects in the list
+            # we sort the electrode in list alphabetically
+            self.electrodeList = sorted(self.electrodeList,key=lambda x: x.name.text)
 
-        # notify error
-        slicer.util.showStatusMessage(operationLog)
-        if len(self.electrodeList) == 0:
-            return
-        # GUI CT Segmentation - Section
-        # CT selector  input volume selector
-        self.ctVolumeCB = slicer.qMRMLNodeComboBox()
-        self.ctVolumeCB.nodeTypes = (("vtkMRMLScalarVolumeNode"), "")
-        self.ctVolumeCB.addAttribute("vtkMRMLScalarVolumeNode", "LabelMap", 0)
-        self.ctVolumeCB.selectNodeUponCreation = True
-        self.ctVolumeCB.addEnabled = False
-        self.ctVolumeCB.removeEnabled = False
-        self.ctVolumeCB.noneEnabled = True
-        self.ctVolumeCB.showHidden = False
-        self.ctVolumeCB.showChildNodeTypes = False
-        self.ctVolumeCB.setMRMLScene(slicer.mrmlScene)
-        self.ctVolumeCB.setToolTip("Pick the input to the algorithm.")
+            # Link the electrode to the Form
+            for elec in self.electrodeList:
+                elec.computeLength()
+                elec.setElectrodeModel(self.models)
+                self.segmentationFL.addRow("", elec.row)
 
-        self.volumeCtLabel = qt.QLabel("CT Volume")
-        self.segmentationFL.addRow(self.volumeCtLabel, self.ctVolumeCB)
+            # notify error
+            slicer.util.showStatusMessage(operationLog)
+            if len(self.electrodeList) == 0:
+                return
+            # GUI CT Segmentation - Section
+            # CT selector  input volume selector
+            self.ctVolumeCB = slicer.qMRMLNodeComboBox()
+            self.ctVolumeCB.nodeTypes = (("vtkMRMLScalarVolumeNode"), "")
+            self.ctVolumeCB.addAttribute("vtkMRMLScalarVolumeNode", "LabelMap", 0)
+            self.ctVolumeCB.selectNodeUponCreation = True
+            self.ctVolumeCB.addEnabled = False
+            self.ctVolumeCB.removeEnabled = False
+            self.ctVolumeCB.noneEnabled = True
+            self.ctVolumeCB.showHidden = False
+            self.ctVolumeCB.showChildNodeTypes = False
+            self.ctVolumeCB.setMRMLScene(slicer.mrmlScene)
+            self.ctVolumeCB.setToolTip("Pick the input to the algorithm.")
 
-        # START Segmentation Button
-        self.startSegmentationPB = qt.QPushButton("Start Segmentation")
-        self.startSegmentationPB.toolTip = "Run the algorithm."
-        self.startSegmentationPB.enabled = True
+            self.volumeCtLabel = qt.QLabel("CT Volume")
+            self.segmentationFL.addRow(self.volumeCtLabel, self.ctVolumeCB)
 
-        # CREATE vtk models
-        self.createVTKModels = qt.QCheckBox("Create Shaft Model?")
+            # START Segmentation Button
+            self.startSegmentationPB = qt.QPushButton("Start Segmentation")
+            self.startSegmentationPB.toolTip = "Run the algorithm."
+            self.startSegmentationPB.enabled = True
 
-        # SPLIT Fiducial Combobox
-#        self.fiducialSplitBox = slicer.qMRMLNodeComboBox()
-#        self.fiducialSplitBox.nodeTypes = (("vtkMRMLMarkupsFiducialNode"), "")
-#        self.fiducialSplitBox.selectNodeUponCreation = False
-#        self.fiducialSplitBox.addEnabled = False
-#        self.fiducialSplitBox.removeEnabled = False
-#        self.fiducialSplitBox.noneEnabled = True
-#        self.fiducialSplitBox.setMRMLScene(slicer.mrmlScene)
-#        self.fiducialSplitBox.setToolTip("Select a fiducial list")
+            # CREATE vtk models
+            self.createVTKModels = qt.QCheckBox("Create Shaft Model?")
 
-        # SPLIT Fiducials Button
-#        self.splitFiducialPB = qt.QPushButton("Split Fiducial List")
-#        self.splitFiducialPB.toolTip = "Split Fiducial file, one for each electrode"
-#        self.splitFiducialPB.enabled = True
+            # SPLIT Fiducial Combobox
+    #        self.fiducialSplitBox = slicer.qMRMLNodeComboBox()
+    #        self.fiducialSplitBox.nodeTypes = (("vtkMRMLMarkupsFiducialNode"), "")
+    #        self.fiducialSplitBox.selectNodeUponCreation = False
+    #        self.fiducialSplitBox.addEnabled = False
+    #        self.fiducialSplitBox.removeEnabled = False
+    #        self.fiducialSplitBox.noneEnabled = True
+    #        self.fiducialSplitBox.setMRMLScene(slicer.mrmlScene)
+    #        self.fiducialSplitBox.setToolTip("Select a fiducial list")
 
-        horzGroupLayout = qt.QHBoxLayout()
-        horzGroupLayout.addWidget(self.startSegmentationPB)
-        horzGroupLayout.addWidget(self.createVTKModels)
+            # SPLIT Fiducials Button
+    #        self.splitFiducialPB = qt.QPushButton("Split Fiducial List")
+    #        self.splitFiducialPB.toolTip = "Split Fiducial file, one for each electrode"
+    #        self.splitFiducialPB.enabled = True
 
-        self.segmentationFL.addRow("", horzGroupLayout)
-#        self.segmentationFL.addRow("", self.fiducialSplitBox)
-#        self.segmentationFL.addRow("", self.splitFiducialPB)
+            horzGroupLayout = qt.QHBoxLayout()
+            horzGroupLayout.addWidget(self.startSegmentationPB)
+            horzGroupLayout.addWidget(self.createVTKModels)
 
-        # connections
-#        self.splitFiducialPB.connect('clicked(bool)', self.onsplitFiducialClick)
-        self.startSegmentationPB.connect('clicked(bool)', self.onstartSegmentationPB)
+            self.segmentationFL.addRow("", horzGroupLayout)
+    #        self.segmentationFL.addRow("", self.fiducialSplitBox)
+    #        self.segmentationFL.addRow("", self.splitFiducialPB)
+
+            # connections
+    #        self.splitFiducialPB.connect('clicked(bool)', self.onsplitFiducialClick)
+            self.startSegmentationPB.connect('clicked(bool)', self.onstartSegmentationPB)
 
     #######################################################################################
     # on ContactPositionEstimator BUTTON

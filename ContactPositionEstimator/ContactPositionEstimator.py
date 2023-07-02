@@ -630,11 +630,19 @@ class Electrode():
         minLength = 100
         elecModel = list(availableModels.keys())[0]
         for k,v in availableModels.items():
-            elecModelLength = float(v[-1])
-            currMinLength = abs(self.length-elecModelLength)
-            if minLength > currMinLength:
-                minLength = currMinLength
-                elecModel = k
+            if isinstance(v[-1],list):
+                for iv in v[-1]:
+                    elecModelLength = float(iv)
+                    currMinLength = abs(self.length-elecModelLength)
+                    if minLength > currMinLength:
+                        minLength = currMinLength
+                        elecModel = k
+            else:
+                elecModelLength = float(v[-1])
+                currMinLength = abs(self.length-elecModelLength)
+                if minLength > currMinLength:
+                    minLength = currMinLength
+                    elecModel = k
         modelIdx = self.model.findText(elecModel)
         if modelIdx >= 0:
             self.model.setCurrentIndex(modelIdx)

@@ -237,7 +237,7 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
 
             # here electrodeList should have all the electrode objects in the list
             # we sort the electrode in list alphabetically
-            self.electrodeList = sorted(self.electrodeList,key=lambda x: x.name.text)
+            #self.electrodeList = sorted(self.electrodeList,key=lambda x: x.name.text)
 
             # Link the electrode to the Form
             for elec in self.electrodeList:
@@ -495,7 +495,7 @@ class ContactPositionEstimatorLogic(ScriptedLoadableModuleLogic):
             name = elList[i].name.text
             for p in range(0, (len(points) - 1), 3):
                 a = fidNode.AddFiducial(float(points[p]), float(points[p + 1]), float(points[p + 2]))
-                fidNode.SetNthFiducialLabel(a, name + str(int((p / 3) + 1)))
+                fidNode.SetNthFiducialLabel(a, f"{name}-{str(int((p / 3) + 1)).zfill(2)}")
                 fidNode.SetNthControlPointDescription(a, elList[i].model.currentText)
 
             ### For each electrode we create a line from the start point to the last + 3mm

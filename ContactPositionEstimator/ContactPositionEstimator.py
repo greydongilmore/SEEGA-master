@@ -206,7 +206,7 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
                 self.fids.GetNthFiducialPosition(i, P2)
                 # [WARNING] The fiducial name convention is hard coded, change please[/WARNING]#
                 # replace name with _1 or 1 with empty char
-                self.name = re.sub(r"_?1", "", self.fids.GetNthFiducialLabel(i))
+                self.name = self.fids.GetNthFiducialLabel(i)
                 # find the electrode in list with the same name
                 el = [x for x in self.electrodeList if str(x.name.text) == self.name]
                 if len(el) > 0:

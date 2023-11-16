@@ -315,6 +315,7 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
     # on Start Segmentation, by reading
     #######################################################################################
     def onstartSegmentationPB(self):
+        slicer.app.setOverrideCursor(qt.Qt.WaitCursor)
         slicer.util.showStatusMessage("START SEGMENTATION")
         print("RUN SEGMENTATION ALGORITHM ")
         ContactPositionEstimatorLogic().runSegmentation(self.electrodeList, self.ctVolumeCB.currentNode(), \
@@ -323,7 +324,7 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
                                                         self.models, self.createVTKModels)
         print("END RUN SEGMENTATION ALGORITHM ")
         slicer.util.showStatusMessage("END SEGMENTATION")
-
+        slicer.app.restoreOverrideCursor()
     #######################################################################################
     # onSplitFiducialClick
     #######################################################################################
@@ -494,7 +495,7 @@ class ContactPositionEstimatorLogic(ScriptedLoadableModuleLogic):
             ### For each of the point returned by deeto we add it to the new markup fiducial
             name = elList[i].name.text
             for p in range(0, (len(points) - 1), 3):
-                a = fidNode.AddFiducial(float(points[p]), float(points[p + 1]), float(points[p + 2]))
+                a = fidNode.AddFiducial(round(float(points[p]),3), round(float(points[p + 1]),3), round(float(points[p + 2]),3))
                 fidNode.SetNthFiducialLabel(a, f"{name}-{str(int((p / 3) + 1)).zfill(2)}")
                 fidNode.SetNthControlPointDescription(a, elList[i].model.currentText)
 

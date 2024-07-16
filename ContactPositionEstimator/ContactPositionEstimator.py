@@ -9,7 +9,6 @@ import subprocess
 from __main__ import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
 import numpy
-import re
 import collections
 import json
 import math
@@ -18,6 +17,17 @@ import math
 https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
 """
 
+try:
+    import regex as re
+except:
+    slicer.util.pip_install("regex")
+    import regex as re
+
+def sorted_nicely(lst):
+    convert = lambda text: int(text) if text.isdigit() else text
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key.name.text)]
+    sorted_lst = sorted(lst, key = alphanum_key,reverse=True)
+    return sorted_lst
 
 #########################################################################################
 ####                                                                                 ####
@@ -163,7 +173,7 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
             a = qt.QLabel(self.tableCaption[i], self.captionGB)
             a.setMaximumWidth(self.tableHsize[i])
             a.setMaximumHeight(20)
-            a.setStyleSheet("qproperty-alignment: AlignCenter;")
+            #a.setStyleSheet("qproperty-alignment: AlignCenter;")
             self.captionBL.addWidget(a)
 
         self.segmentationFL.addRow("", self.captionGB)
@@ -201,12 +211,12 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
             self.electrodeList = []
 
             # here we fill electrode list using fiducials
-            for i in range(self.fids.GetNumberOfFiducials()):
+            for i in range(self.fids.GetNumberOfControlPoints()):
                 P2 = [0.0, 0.0, 0.0]
-                self.fids.GetNthFiducialPosition(i, P2)
+                self.fids.GetNthControlPointPosition(i, P2)
                 # [WARNING] The fiducial name convention is hard coded, change please[/WARNING]#
                 # replace name with _1 or 1 with empty char
-                self.name = self.fids.GetNthFiducialLabel(i)
+                self.name = self.fids.GetNthControlPointLabel(i)
                 # find the electrode in list with the same name
                 el = [x for x in self.electrodeList if str(x.name.text) == self.name]
                 if len(el) > 0:
@@ -237,7 +247,7 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
 
             # here electrodeList should have all the electrode objects in the list
             # we sort the electrode in list alphabetically
-            #self.electrodeList = sorted(self.electrodeList,key=lambda x: x.name.text)
+            self.electrodeList = sorted_nicely(self.electrodeList)
 
             # Link the electrode to the Form
             for elec in self.electrodeList:
@@ -253,7 +263,7 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
             # CT selector  input volume selector
             self.ctVolumeCB = slicer.qMRMLNodeComboBox()
             self.ctVolumeCB.nodeTypes = (("vtkMRMLScalarVolumeNode"), "")
-            self.ctVolumeCB.addAttribute("vtkMRMLScalarVolumeNode", "LabelMap", 0)
+            #self.ctVolumeCB.addAttribute("vtkMRMLScalarVolumeNode", "LabelMap", 0)
             self.ctVolumeCB.selectNodeUponCreation = True
             self.ctVolumeCB.addEnabled = False
             self.ctVolumeCB.removeEnabled = False
@@ -343,7 +353,7 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
 #        fiducialData = self.fiducialSplitBox.currentNode()
 #
 #        # Get channel names
-#        chLabels = [fiducialData.GetNthFiducialLabel(i) for i in xrange(fiducialData.GetNumberOfFiducials())]
+#        chLabels = [fiducialData.GetNthControlPointLabel(i) for i in xrange(fiducialData.GetNumberOfControlPoints())]
 #
 #        # Extract electrode name from channel names
 #        elLabels = [re.match('[A-Z]*\'?', x).group(0) for x in chLabels]
@@ -365,9 +375,9 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
 #                # each electrode and populate with corresponding
 #                # channel positions and labels
 #                P = [0.0, 0.0, 0.0]
-#                fiducialData.GetNthFiducialPosition(chIdx + offset, P)
+#                fiducialData.GetNthControlPointPosition(chIdx + offset, P)
 #                newFids.AddFiducial(P[0], P[1], P[2])
-#                newFids.SetNthFiducialLabel(chIdx, fiducialData.GetNthFiducialLabel(chIdx + offset))
+#                newFids.SetNthControlPointLabel(chIdx, fiducialData.GetNthControlPointLabel(chIdx + offset))
 #                newFids.SetNthMarkupDescription(chIdx, fiducialData.GetNthMarkupDescription(chIdx + offset))
 #
 #            slicer.modules.markups.logic().SetAllMarkupsLocked(newFids, True)
@@ -496,7 +506,7 @@ class ContactPositionEstimatorLogic(ScriptedLoadableModuleLogic):
             name = elList[i].name.text
             for p in range(0, (len(points) - 1), 3):
                 a = fidNode.AddFiducial(round(float(points[p]),3), round(float(points[p + 1]),3), round(float(points[p + 2]),3))
-                fidNode.SetNthFiducialLabel(a, f"{name}-{str(int((p / 3) + 1)).zfill(2)}")
+                fidNode.SetNthControlPointLabel(a, f"{name}-{str(int((p / 3) + 1)).zfill(2)}")
                 fidNode.SetNthControlPointDescription(a, elList[i].model.currentText)
 
             ### For each electrode we create a line from the start point to the last + 3mm
@@ -594,12 +604,12 @@ class Electrode():
 
         #### Set the model list combo box
         self.model = qt.QComboBox(self.row)
-        self.keys = sorted(models.keys(),reverse=True)
+        self.keys = sorted(models.keys(),reverse=False)
         self.model.addItems(self.keys)
 
         self.model.setMaximumWidth(hsize[1])
         self.model.setMaximumHeight(20)
-        self.model.setStyleSheet("qproperty-alignment: AlignCenter;")
+        #self.model.setStyleSheet("qproperty-alignment: AlignCenter;")
         self.hlayout.addWidget(self.model)
 
         #### Tail Check Box
@@ -607,7 +617,7 @@ class Electrode():
         self.tailCheckBox.setMaximumWidth(hsize[2])
         self.tailCheckBox.setMaximumHeight(20)
         self.tailCheckBox.setChecked(True)
-        self.tailCheckBox.setStyleSheet("qproperty-alignment: AlignCenter;")
+       #self.tailCheckBox.setStyleSheet("qproperty-alignment: AlignCenter;")
         self.hlayout.addWidget(self.tailCheckBox)
 
         ### Head CheckBox
@@ -615,11 +625,11 @@ class Electrode():
         self.headCheckBox.setMaximumWidth(hsize[3])
         self.headCheckBox.setMaximumHeight(20)
         self.headCheckBox.setChecked(True)
-        self.headCheckBox.setStyleSheet("qproperty-alignment: AlignCenter;")
+        #self.headCheckBox.setStyleSheet("qproperty-alignment: AlignCenter;")
         self.hlayout.addWidget(self.headCheckBox)
 
     def computeLength(self):
-        if len(self.entry) is 0 or len(self.target) is 0:
+        if len(self.entry) == 0 or len(self.target) == 0:
             self.length = 0
         tmpEP = numpy.array(self.entry)
         tmpTP = numpy.array(self.target)

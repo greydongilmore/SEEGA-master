@@ -247,7 +247,7 @@ class ContactPositionEstimatorWidget(ScriptedLoadableModuleWidget):
 
             # here electrodeList should have all the electrode objects in the list
             # we sort the electrode in list alphabetically
-            self.electrodeList = sorted_nicely(self.electrodeList)
+            #self.electrodeList = sorted_nicely(self.electrodeList)
 
             # Link the electrode to the Form
             for elec in self.electrodeList:
